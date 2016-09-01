@@ -25,6 +25,7 @@ import {Log} from "../../../spi/log/log";
 import {WorkspaceStopEventPromiseMessageBusSubscriber} from "./workspace-stop-event-promise-subscriber";
 import {RecipeBuilder} from "../../../spi/docker/recipebuilder";
 import {CheFileStructWorkspaceCommand} from "../../../internal/dir/chefile-struct/che-file-struct";
+import {org} from "../../../internal/dir/chefile-struct/che-temp";
 /**
  * Workspace class allowing to manage a workspace, like create/start/stop, etc operations
  * @author Florent Benoit
@@ -46,6 +47,76 @@ export class Workspace {
         this.websocket = new Websocket();
     }
 
+
+
+    /**
+     * Search a workspace data by returning a Promise with WorkspaceDto.
+     */
+    searchWorkspaceCustom(key:string):Promise<org.eclipse.che.api.workspace.shared.dto.WorkspaceDto> {
+        Log.getLogger().debug('search workspace with key', key);
+        var jsonRequest:HttpJsonRequest = new DefaultHttpJsonRequest(this.authData, '/api/workspace/' + key, 200);
+        return jsonRequest.request().then((jsonResponse:HttpJsonResponse) => {
+            Log.getLogger().debug('got workspace with key', key, 'result: ', jsonResponse.getData());
+            return JSON.parse(jsonResponse.getData());
+        });
+    }
+
+    /**
+     * Get all workspaces
+     */
+    getWorkspacesCustom():Promise<Array<org.eclipse.che.api.workspace.shared.dto.WorkspaceDto>> {
+        var jsonRequest:HttpJsonRequest = new DefaultHttpJsonRequest(this.authData, '/api/workspace/', 200);
+        return jsonRequest.request().then((jsonResponse:HttpJsonResponse) => {
+            return jsonResponse.asArrayDto(org.eclipse.che.api.workspace.shared.dto.WorkspaceDtoImpl);
+        });
+    }
+
+    /**
+     * Get all workspaces
+     */
+    getWorkspaces():Promise<Array<WorkspaceDto>> {
+        var jsonRequest:HttpJsonRequest = new DefaultHttpJsonRequest(this.authData, '/api/workspace/', 200);
+        return jsonRequest.request().then((jsonResponse:HttpJsonResponse) => {
+            let workspaceDtos:Array<WorkspaceDto> = new Array<WorkspaceDto>();
+            JSON.parse(jsonResponse.getData()).forEach((entry)=> {
+                workspaceDtos.push(new WorkspaceDto(entry));
+            });
+            return workspaceDtos;
+        });
+    }
+
+    /**
+     * Create a workspace and return a promise with content of WorkspaceDto in case of success
+     */
+    createCustomWorkspace(createWorkspaceConfig:CreateWorkspaceConfig):Promise<org.eclipse.che.api.workspace.shared.dto.WorkspaceDto> {
+
+        var workspace = {
+            "defaultEnv": "default",
+            "commands": createWorkspaceConfig.commands,
+            "projects": [],
+            "environments": [{
+                "machineConfigs": [{
+                    "dev": true,
+                    "servers": [],
+                    "envVariables": {},
+                    "limits": {"ram": createWorkspaceConfig.ram},
+                    "source": createWorkspaceConfig.machineConfigSource,
+                    "name": "default",
+                    "type": "docker",
+                    "links": []
+                }], "name": "default"
+            }],
+            "name": createWorkspaceConfig.name,
+            "links": [],
+            "description": null
+        };
+
+        var jsonRequest:HttpJsonRequest = new DefaultHttpJsonRequest(this.authData, '/api/workspace?account=', 201).setMethod('POST').setBody(workspace);
+        return jsonRequest.request().then((jsonResponse:HttpJsonResponse) => {
+            return JSON.parse(jsonResponse.getData());
+        });
+
+    }
 
     /**
      * Create a workspace and return a promise with content of WorkspaceDto in case of success

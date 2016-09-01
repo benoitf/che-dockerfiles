@@ -134,11 +134,42 @@ export class DefaultHttpJsonResponse implements HttpJsonResponse {
     getData() : any {
         return this.data;
     }
+
+    asDto(dtoImplementation : any) : any {
+        //let interfaceName: string = dtoClass.name;
+        var implementationInstance = Object.create(dtoImplementation.prototype);
+        let arrayOfArray : Array<any> = new Array<any>();
+        arrayOfArray.push(JSON.parse(this.data));
+        implementationInstance.constructor.apply(implementationInstance, arrayOfArray);
+        return implementationInstance;
+
+    }
+
+    asArrayDto(dtoImplementation : any) : Array<any> {
+        console.log('start parse', Date.now());
+        let parsed : any = JSON.parse(this.data);
+        console.log('start unwrap', Date.now());
+        let arrayDto:Array<any> = new Array<any>();
+        parsed.forEach((entry) => {
+            let implementationInstance = Object.create(dtoImplementation.prototype);
+            let arrayOfArray : Array<any> = new Array<any>();
+            arrayOfArray.push(entry);
+            implementationInstance.constructor.apply(implementationInstance, arrayOfArray);
+            arrayDto.push(implementationInstance);
+        });
+        console.log('end unwrap', Date.now());
+        return arrayDto;
+
+    }
+
+
 }
 
 export interface HttpJsonResponse {
 
     getData() : any;
+    asDto(dtoImplementation : any) : any;
+    asArrayDto(dtoImplementation : any) : Array<any>;
 }
 
 export interface HttpJsonRequest {
