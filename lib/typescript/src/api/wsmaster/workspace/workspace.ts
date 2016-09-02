@@ -141,8 +141,6 @@ export class Workspace {
         })
     }
 
-
-
     /**
      * Get a workspace data by returning a Promise with WorkspaceDto.
      */
